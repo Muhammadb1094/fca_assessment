@@ -2,6 +2,11 @@
 This module defines the models for the library management system.
 """
 from django.db import models
+from django.apps import apps
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from django.core.exceptions import ObjectDoesNotExist
+
 from isbn_field import ISBNField
 
 
@@ -106,3 +111,50 @@ class Book(models.Model):
 
     def __str__(self):
         return f"{self.id}. {self.title} ({self.isbn})"
+
+    def notify_wishlist_users(self):
+        """Notify users when a book becomes available"""
+        if self.is_available:
+            wishlistmodel = apps.get_model('api', 'Wishlist')
+            wishlists = wishlistmodel.objects.filter(books=self)
+            for wishlist in wishlists:
+                email_body = f"NOTIFICATION: The book '{self.title}' is now available!"
+                print("********************************************")
+                print(email_body)
+                print("********************************************")
+                wishlist.books.remove(self)
+
+@receiver(pre_save, sender=Book)
+def book_availability_changed(sender, instance, **kwargs):
+    """
+    Signal handler that triggers notifications when a book becomes available
+    """
+    try:
+        old_instance = Book.objects.get(pk=instance.pk)
+        if not old_instance.is_available and instance.is_available:
+            instance.notify_wishlist_users()
+    except ObjectDoesNotExist:
+        # New book instance (no previous data to compare with)
+        pass
+
+
+class Wishlist(models.Model):
+    """
+    Represents a user's wishlist of unavailable books they want to be notified about.
+    """
+    wishlist_user_email = models.EmailField(max_length=254)
+    wishlist_user_name = models.CharField(max_length=254)
+    books = models.ManyToManyField(Book, related_name='wishlist_items')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """
+        Meta options for model configuration
+        """
+        ordering = ['-created_at']
+        verbose_name = "Wishlist"
+        verbose_name_plural = "Wishlists"
+
+    def __str__(self):
+        return f"Wishlist for {self.wishlist_user_email or 'Anonymous'}"
