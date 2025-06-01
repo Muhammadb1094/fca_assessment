@@ -1,20 +1,20 @@
 """
 Api views for handling book search, wishlist management, and authentication.
 """
-from rest_framework import generics, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Q
 
 from .models import Book, Wishlist
 from .serializers import BookSerializer, WishlistSerializer
 
 
-class BookSearchAPIView(generics.ListAPIView):
+class BookViewSet(viewsets.ModelViewSet):
     """
-    API view to search for books by title or author.
+    ViewSet for managing books and searching
     """
     serializer_class = BookSerializer
+    queryset = Book.objects.all()
 
     def get_queryset(self):
         queryset = Book.objects.all()
@@ -34,6 +34,32 @@ class BookSearchAPIView(generics.ListAPIView):
             queryset = queryset.filter(authors__name__icontains=author)
 
         return queryset.distinct()
+
+    @action(detail=True, methods=['put'])
+    def change_book_availability(self, request, pk=None):
+        """Change the availability status of a book"""
+        try:
+            book = self.get_object()
+            is_available = request.data.get('is_available')
+
+            if is_available is not None:
+                book.is_available = is_available
+                book.save()
+
+                return Response({
+                    'message':
+                        f"Book '{book.title}' availability status updated to {'available' if is_available else 'borrowed'}",
+                    'is_available': book.is_available
+                }, status=status.HTTP_200_OK)
+
+            return Response({
+                'error': 'is_available parameter is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Book.DoesNotExist:
+            return Response({
+                'error': 'Book not found'
+            }, status=status.HTTP_404_NOT_FOUND)
 
 class WishlistViewSet(viewsets.ModelViewSet):
     """

@@ -133,6 +133,9 @@ def book_availability_changed(sender, instance, **kwargs):
         old_instance = Book.objects.get(pk=instance.pk)
         if not old_instance.is_available and instance.is_available:
             instance.notify_wishlist_users()
+            print("********************************************")
+            print(f"Book '{instance.title}' is now available, notifying users.")
+            print("********************************************")
     except ObjectDoesNotExist:
         # New book instance (no previous data to compare with)
         pass
