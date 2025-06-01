@@ -18,12 +18,20 @@ class BookSearchAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         queryset = Book.objects.all()
-        search = self.request.query_params.get('search', None)
+        title = self.request.query_params.get('title', None)
+        author = self.request.query_params.get('author', None)
+        is_available = self.request.query_params.get('is_available', None)
 
-        if search:
-            queryset = queryset.filter(
-                Q(title__icontains=search) | Q(authors__name__icontains=search)
-            ).distinct()
+        if is_available is not None:
+            is_available = is_available.lower() == 'true'
+            queryset = queryset.filter(is_available=is_available)
+
+        if title and author:
+            queryset = queryset.filter(title__icontains=title, authors__name__icontains=author)
+        elif title and not author:
+            queryset = queryset.filter(title__icontains=title)
+        elif author and not title:
+            queryset = queryset.filter(authors__name__icontains=author)
 
         return queryset.distinct()
 
