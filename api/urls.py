@@ -21,4 +21,7 @@ urlpatterns = [
     path('books/rental-report/', BookViewSet.as_view(
         {'get': 'rental_report'}
         ), name='rental-report'),
+    path('books/update-amazon-ids/', BookViewSet.as_view(
+        {'post': 'update_amazon_ids'}
+        ), name='update-amazon-ids'),
 ]

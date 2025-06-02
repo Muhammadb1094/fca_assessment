@@ -28,9 +28,30 @@ class BookRentalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BookRental
-        fields = "__all__"
+        fields = ['id', 'book_title', 'borrower_email',
+                  'borrowed_date', 'returned_date', 'rental_duration']
     def get_rental_duration(self, obj):
         if obj.returned_date:
             return (obj.returned_date - obj.borrowed_date).days
         from django.utils import timezone
         return (timezone.now() - obj.borrowed_date).days
+
+
+class AmazonIdUpdateSerializer(serializers.Serializer):
+    """Serializer for updating Amazon IDs of books"""
+    book_id = serializers.IntegerField()
+    amazon_id = serializers.CharField(max_length=20)
+
+    def validate_amazon_id(self, value):
+        """Validate Amazon ID format"""
+        if not value.strip():
+            raise serializers.ValidationError("Amazon ID cannot be empty")
+        return value.strip()
+
+    def validate_book_id(self, value):
+        """Validate that the book exists"""
+        try:
+            Book.objects.get(id=value)
+            return value
+        except Book.DoesNotExist:
+            raise serializers.ValidationError("Book not found")

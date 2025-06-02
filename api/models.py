@@ -81,6 +81,7 @@ class Book(models.Model):
         publication_year (int): Year the book was published, stored as a positive integer.
         language (ForeignKey): Relationship to Language model, indicating the language of the book.
         is_available (bool): Indicates if the book is currently available
+        amazon_id (str): Amazon product identifier for affiliate links.
         created_at (datetime): Timestamp when the book record was created, automatically set on creation.
         updated_at (datetime): Timestamp when the book record was last updated, automatically updated on modification.
     Meta:
@@ -98,6 +99,8 @@ class Book(models.Model):
     language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name='books',
                                  null=True, blank=True)
     is_available = models.BooleanField(default=True)
+    amazon_id = models.CharField(max_length=20, blank=True, null=True,
+                                 help_text="Amazon product identifier for affiliate links")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

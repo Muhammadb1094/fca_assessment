@@ -3,12 +3,16 @@ Api views for handling book search, wishlist management, and rentals.
 """
 from datetime import timedelta
 from django.utils import timezone
+from django.db import transaction
 from rest_framework import status, viewsets, pagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import Book, Wishlist, BookRental
-from .serializers import BookSerializer, WishlistSerializer, BookRentalSerializer
+from .serializers import (
+    BookSerializer, WishlistSerializer, BookRentalSerializer,
+    AmazonIdUpdateSerializer
+)
 
 
 class CustomPagination(pagination.PageNumberPagination):
@@ -182,6 +186,38 @@ class BookViewSet(viewsets.ModelViewSet):
         }
 
         return paginator.get_paginated_response(response_data)
+
+    @action(detail=False, methods=['post'])
+    @transaction.atomic
+    def update_amazon_ids(self, request):
+        """Update Amazon IDs for multiple books"""
+        serializer = AmazonIdUpdateSerializer(data=request.data, many=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        updated_books = []
+        errors = []
+
+        for item in serializer.validated_data:
+            try:
+                book = Book.objects.get(id=item['book_id'])
+                book.amazon_id = item['amazon_id']
+                book.save()
+                updated_books.append({
+                    'book_id': book.id,
+                    'title': book.title,
+                    'amazon_id': book.amazon_id
+                })
+            except Book.DoesNotExist:
+                errors.append({
+                    'book_id': item['book_id'],
+                    'error': 'Book not found'
+                })
+
+        return Response({
+            'updated_books': updated_books,
+            'errors': errors
+        }, status=status.HTTP_200_OK)
 
 
 class WishlistViewSet(viewsets.ModelViewSet):
