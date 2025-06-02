@@ -140,6 +140,33 @@ def book_availability_changed(sender, instance, **kwargs):
         # New book instance (no previous data to compare with)
         pass
 
+class BookRental(models.Model):
+    """
+    Represents a rental transaction for a book.
+    Attributes:
+        borrowed_date (datetime): The date when the book was borrowed.
+        returned_date (datetime): The date when the book was returned.
+        borrower_email (str): Email of the borrower.
+        book (ForeignKey): Relationship to the Book model.
+    """
+    borrowed_date = models.DateTimeField(auto_now_add=True)
+    returned_date = models.DateTimeField(null=True, blank=True)
+    borrower_email = models.EmailField(max_length=254)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='rentals')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Rental of {self.book.title} by {self.borrower_email}"
+
+    class Meta:
+        """
+        Meta options for model configuration
+        """
+        ordering = ['-borrowed_date']
+        verbose_name = "Book Rental"
+        verbose_name_plural = "Book Rentals"
+
 
 class Wishlist(models.Model):
     """
